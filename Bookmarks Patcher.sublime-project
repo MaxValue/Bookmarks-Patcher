@@ -1,0 +1,11 @@
+{
+	"folders":
+	[
+		{
+			"path": "./",
+			"name": "Project",
+			"folder_exclude_patterns": [".bundle", "vendor", "__pycache__", "venv", "browser_profiles", "build-tmp"],
+			"file_exclude_patterns": ["Gemfile.lock", "*.zip"]
+		}
+	]
+}

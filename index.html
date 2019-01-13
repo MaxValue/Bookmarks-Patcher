@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title id="title">Convert Bookmarks</title>
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="viewport" content="user-scalable=no, width=device-width" />
+		<meta name="apple-mobile-web-app-title" content="Convert Bookmarks" />
+		<link rel="stylesheet" href="style.css">
+		<style type="text/css">
+		</style>
+	</head>
+	<body ontouchstart="">
+		<form onsubmit="return parseRequest(this);">
+			<label>1. The bookmarks backup: <input type="file" name="fileElem" accept="application/json,.json,.JSON,text/html,.html.HTML,.htm,.HTM" required=""></label>
+			<fieldset>
+				<legend>2. The options:</legend>
+				<label>When patching bookmarks, replace HTTP with HTTPS (more secure)?<input type="checkbox" name="useHTTPS" checked=""></label>
+				<fieldset>
+					<legend>Sites</legend>
+					<label>Patch Anlinkz?<input type="checkbox" name="site.anilinkz"></label>
+				</fieldset>
+			</fieldset>
+			<label>3. Start Conversion: <button>Convert</button></label>
+		</form>
+		<div id="testdiv"></div>
+	</body>
+	<script type="text/javascript">
+		let sites = {
+			"anilinkz": {
+				"url": "aniwatcher.com",
+				"rxp": [
+					/^https:?\/\/(www\.)?anilinkz\.(to|com|net|tv|io)/i,
+					/^https:?\/\/(www\.)?aniwatcher\.com/i,
+				]
+			}
+		}
+		function parseRequest(formElem) {
+			files = formElem.fileElem.files;
+			for (let i = 0, file; file = files[i]; i++) {
+				switch (file.type) {
+					case "application/json":
+						var reader = new FileReader();
+						reader.onload = function(event) {
+							var bookmarksBackup = JSON.parse(event.target.result);
+							var bookmarksBackup_updated = replaceJSONBookmarks(bookmarksBackup, sites, formElem.useHTTPS.checked);
+							var bookmarksBackup_updated_encoded = encodeURIComponent(JSON.stringify(bookmarksBackup_updated));
+							var downloadElement = document.createElement("a");
+							downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
+							var newFileName = file.name;
+							if (newFileName.endsWith(".json")) {
+								newFileName = newFileName.slice(0, -5);
+							}
+							newFileName += "_patched.json";
+							downloadElement.setAttribute("download", newFileName);
+							downloadElement.style.display = "none";
+							document.body.appendChild(downloadElement);
+							downloadElement.click();
+							document.body.removeChild(downloadElement);
+						}
+						reader.readAsText(file);
+						break;
+					case "text/html":
+						var reader = new FileReader();
+						reader.onload = function(event) {
+							var parser = new DOMParser();
+							var bookmarksBackup = parser.parseFromString(event.target.result, "text/html");
+							console.log(bookmarksBackup);
+							var bookmarksBackup_updated = replaceHTMLBookmarks(bookmarksBackup, sites);
+							// var XMLS = new XMLSerializer();
+							// var bookmarksBackup_updated_encoded = encodeURIComponent(XMLS.serializeToString(bookmarksBackup_updated));
+							// var downloadElement = document.createElement("a");
+							// downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
+							// var newFileName = file.name;
+							// if (newFileName.endsWith(".html")) {
+							// 	newFileName = newFileName.slice(0, -5);
+							// } else if (newFileName.endsWith(".htm")) {
+							// 	newFileName = newFileName.slice(0, -4);
+							// }
+							// newFileName += "_patched.html";
+							// downloadElement.setAttribute("download", newFileName);
+							// downloadElement.style.display = "none";
+							// document.body.appendChild(downloadElement);
+							// downloadElement.click();
+							// document.body.removeChild(downloadElement);
+						}
+						reader.readAsText(file);
+						break;
+				}
+			}
+			return false;
+		}
+		function replaceJSONBookmarks(container, sitesData, useHTTPS=true) {
+			for (var key in container) {
+				if (container.hasOwnProperty(key)) {
+					switch (key) {
+						case "children":
+							if (Array.isArray(container[key])) {
+								container[key].forEach(function(elem,i){
+									container[key][i] = replaceJSONBookmarks(elem, sitesData, useHTTPS);
+								})
+							}
+							break;
+						case "uri":
+							var url = container[key];
+							for (var site in sitesData) {
+								sitesData[site]["rxp"].forEach(function(siteRegex){
+									var siteRegex_match = siteRegex.exec(url);
+									if (siteRegex_match) {
+										if (useHTTPS) {
+											var protocol = "https://";
+										} else {
+											var protocol = "http://";
+										}
+										container[key] = protocol+sitesData["url"]+url.slice(siteRegex_match[0].length);
+										/*
+											if should change title
+												match title
+													patch title
+										*/
+									}
+								})
+							}
+							break;
+					}
+				}
+			}
+			return container;
+		}
+		function replaceHTMLBookmarks(container, sitesData) {
+			if (container.constructor.name == "HTMLAnchorElement") {
+
+			}
+
+			if (typeof container == "object") {
+				console.log(container.constructor.name);
+			} else {
+				console.log("CONTAINER IS NOT OBJECT, is "+(typeof container));
+			}
+			for (let child of container.children) {
+				replaceHTMLBookmarks(child, sitesData);
+			}
+			return false;
+		}
+	</script>
+</html>
