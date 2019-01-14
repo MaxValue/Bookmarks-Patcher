@@ -69,3 +69,20 @@ This project was created because I (Max) was asked by a friend of mine to build 
 which can update his browser bookmarks. I put this off for a very long time,
 because I didn't know how to make a simple GUI with the programming languages I knew.
 Since I am now more focused on web development, I realized that a web app is much more suited for this task.
+
+## Technical Notes
+While implementing this, I noticed some things about the bookmark container formats.
+
+### Mozilla's JSON Bookmark Export
+* Every bookmark is an object.
+* There are 3 different types of objects (defined at the `type` key):
+    * "text/x-moz-place": This is a bookmark.
+    * "text/x-moz-place-container": This is a subfolder of bookmarks.
+    * "text/x-moz-place-separator": This is a separator (the horizontal lines in your bookmarks list) between bookmarks or folders.
+* If an object has sub-objects, those get stored in an array at the `children` key.
+* Such a children array only has objects as elements.
+* In an "text/x-moz-place" object, the `uri` key stores the bookmarked link.
+
+### "Netscape" HTML Bookmark Export
+* Is an html document, can be parsed by `DOMParser()`.
+* Bookmarks are anchor elements, the bookmarked link is stored in `href` attribute.
