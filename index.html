@@ -79,24 +79,23 @@
 						reader.onload = function(event) {
 							var parser = new DOMParser();
 							var bookmarksBackup = parser.parseFromString(event.target.result, "text/html");
-							console.log(bookmarksBackup);
-							var bookmarksBackup_updated = replaceHTMLBookmarks(bookmarksBackup, sites);
-							// var XMLS = new XMLSerializer();
-							// var bookmarksBackup_updated_encoded = encodeURIComponent(XMLS.serializeToString(bookmarksBackup_updated));
-							// var downloadElement = document.createElement("a");
-							// downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
-							// var newFileName = file.name;
-							// if (newFileName.endsWith(".html")) {
-							// 	newFileName = newFileName.slice(0, -5);
-							// } else if (newFileName.endsWith(".htm")) {
-							// 	newFileName = newFileName.slice(0, -4);
-							// }
-							// newFileName += "_patched.html";
-							// downloadElement.setAttribute("download", newFileName);
-							// downloadElement.style.display = "none";
-							// document.body.appendChild(downloadElement);
-							// downloadElement.click();
-							// document.body.removeChild(downloadElement);
+							var bookmarksBackup_updated = replaceHTMLBookmarks(bookmarksBackup, sites, elem_form.sites, elem_form.useHTTPS.checked);
+							var XMLS = new XMLSerializer();
+							var bookmarksBackup_updated_encoded = encodeURIComponent(XMLS.serializeToString(bookmarksBackup_updated));
+							var downloadElement = document.createElement("a");
+							downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
+							var newFileName = file.name;
+							if (newFileName.endsWith(".html")) {
+								newFileName = newFileName.slice(0, -5);
+							} else if (newFileName.endsWith(".htm")) {
+								newFileName = newFileName.slice(0, -4);
+							}
+							newFileName += "_patched.html";
+							downloadElement.setAttribute("download", newFileName);
+							downloadElement.style.display = "none";
+							document.body.appendChild(downloadElement);
+							downloadElement.click();
+							document.body.removeChild(downloadElement);
 						}
 						reader.readAsText(file);
 						break;
@@ -140,20 +139,37 @@
 			}
 			return container;
 		}
-		function replaceHTMLBookmarks(container, sitesData) {
+		function replaceHTMLBookmarks(container, sitesData, siteCheckboxes, useHTTPS=true) {
 			if (container.constructor.name == "HTMLAnchorElement") {
-
+				if ("href" in container) {
+					var url = container.href;
+					siteCheckboxes.forEach(function(siteCheckbox){
+						let siteID = siteCheckbox.value;
+						if (siteCheckbox.checked && siteID in sitesData) {
+							sitesData[siteID]["rxp"].forEach(function(siteRegex){
+								var siteRegex_match = siteRegex.exec(url);
+								if (siteRegex_match) {
+									if (useHTTPS) {
+										var protocol = "https://";
+									} else {
+										var protocol = "http://";
+									}
+									container.href = protocol+sitesData[siteID]["url"]+url.slice(siteRegex_match[0].length);
+									/*
+										if should change title
+											match title
+												patch title
+									*/
+								}
+							})
+						}
+					})
+				}
 			}
-
-			if (typeof container == "object") {
-				console.log(container.constructor.name);
-			} else {
-				console.log("CONTAINER IS NOT OBJECT, is "+(typeof container));
+			for (let i = 0, elem; elem = container.children[i]; i++) {
+				container.children[i] = replaceHTMLBookmarks(elem, sitesData, siteCheckboxes, useHTTPS);
 			}
-			for (let child of container.children) {
-				replaceHTMLBookmarks(child, sitesData);
-			}
-			return false;
+			return container;
 		}
 	</script>
 </html>

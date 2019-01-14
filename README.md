@@ -47,7 +47,6 @@ Please open an issue if you wanna help or have questions.
 
 ### Roadmap
 Things I already plan to implement, but didn't have yet:
-- [] Support HTML bookmark files
 - [] Better visual design: Show exactly what changes will be made using examples
 - [] Turn https on or off for each site
 - [] Select sites which should be patched
