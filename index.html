@@ -105,41 +105,37 @@
 			return false;
 		}
 		function replaceJSONBookmarks(container, sitesData, siteCheckboxes, useHTTPS=true) {
-			for (var key in container) {
-				if (container.hasOwnProperty(key)) {
-					switch (key) {
-						case "children":
-							if (Array.isArray(container[key])) {
-								container[key].forEach(function(elem,i){
-									container[key][i] = replaceJSONBookmarks(elem, sitesData, siteCheckboxes, useHTTPS);
+			if (container.constructor.name == "Object") {
+				if ("type" in container && container["type"]=="text/x-moz-place") {
+					if ("uri" in container) {
+						var url = container["uri"];
+						siteCheckboxes.forEach(function(siteCheckbox){
+							let siteID = siteCheckbox.value;
+							if (siteCheckbox.checked && siteID in sitesData) {
+								sitesData[siteID]["rxp"].forEach(function(siteRegex){
+									var siteRegex_match = siteRegex.exec(url);
+									if (siteRegex_match) {
+										if (useHTTPS) {
+											var protocol = "https://";
+										} else {
+											var protocol = "http://";
+										}
+										container["uri"] = protocol+sitesData[siteID]["url"]+url.slice(siteRegex_match[0].length);
+										/*
+											if should change title
+												match title
+													patch title
+										*/
+									}
 								})
 							}
-							break;
-						case "uri":
-							var url = container[key];
-							siteCheckboxes.forEach(function(siteCheckbox){
-								let siteID = siteCheckbox.value;
-								if (siteCheckbox.checked && siteID in sitesData) {
-									sitesData[siteID]["rxp"].forEach(function(siteRegex){
-										var siteRegex_match = siteRegex.exec(url);
-										if (siteRegex_match) {
-											if (useHTTPS) {
-												var protocol = "https://";
-											} else {
-												var protocol = "http://";
-											}
-											container[key] = protocol+sitesData["url"]+url.slice(siteRegex_match[0].length);
-											/*
-												if should change title
-													match title
-														patch title
-											*/
-										}
-									})
-								}
-							})
-							break;
+						})
 					}
+				}
+				if ("children" in container) {
+					container["children"].forEach(function(elem, i){
+						container["children"][i] = replaceJSONBookmarks(elem, sitesData, siteCheckboxes, useHTTPS);
+					})
 				}
 			}
 			return container;
