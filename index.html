@@ -17,9 +17,9 @@
 			<fieldset>
 				<legend>2. The options:</legend>
 				<label>When patching bookmarks, replace HTTP with HTTPS (more secure)?<input type="checkbox" name="useHTTPS" checked=""></label>
-				<fieldset>
+				<fieldset id="sitesList">
 					<legend>Sites</legend>
-					<label>Patch Anlinkz?<input type="checkbox" name="site.anilinkz"></label>
+					<input type="hidden" name="sites" value="You don't wanna know why this element has to exist.">
 				</fieldset>
 			</fieldset>
 			<label>3. Start Conversion: <button>Convert</button></label>
@@ -28,7 +28,7 @@
 	</body>
 	<script type="text/javascript">
 		let sites = {
-			"anilinkz": {
+			"Anilinkz": {
 				"url": "aniwatcher.com",
 				"rxp": [
 					/^https:?\/\/(www\.)?anilinkz\.(to|com|net|tv|io)/i,
@@ -36,15 +36,28 @@
 				]
 			}
 		}
-		function parseRequest(formElem) {
-			files = formElem.fileElem.files;
+		let elem_sitesList = document.getElementById("sitesList");
+		for (let siteName in sites) {
+			let label = document.createElement("label");
+			let span = document.createElement("span");
+			span.innerText = "Patch "+siteName+"? ";
+			let input = document.createElement("input");
+			input.type = "checkbox";
+			input.name = "sites";
+			input.value = siteName;
+			label.appendChild(span);
+			label.appendChild(input);
+			elem_sitesList.appendChild(label);
+		}
+		function parseRequest(elem_form) {
+			var files = elem_form.fileElem.files;
 			for (let i = 0, file; file = files[i]; i++) {
 				switch (file.type) {
 					case "application/json":
 						var reader = new FileReader();
 						reader.onload = function(event) {
 							var bookmarksBackup = JSON.parse(event.target.result);
-							var bookmarksBackup_updated = replaceJSONBookmarks(bookmarksBackup, sites, formElem.useHTTPS.checked);
+							var bookmarksBackup_updated = replaceJSONBookmarks(bookmarksBackup, sites, elem_form.sites, elem_form.useHTTPS.checked);
 							var bookmarksBackup_updated_encoded = encodeURIComponent(JSON.stringify(bookmarksBackup_updated));
 							var downloadElement = document.createElement("a");
 							downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
@@ -91,37 +104,40 @@
 			}
 			return false;
 		}
-		function replaceJSONBookmarks(container, sitesData, useHTTPS=true) {
+		function replaceJSONBookmarks(container, sitesData, siteCheckboxes, useHTTPS=true) {
 			for (var key in container) {
 				if (container.hasOwnProperty(key)) {
 					switch (key) {
 						case "children":
 							if (Array.isArray(container[key])) {
 								container[key].forEach(function(elem,i){
-									container[key][i] = replaceJSONBookmarks(elem, sitesData, useHTTPS);
+									container[key][i] = replaceJSONBookmarks(elem, sitesData, siteCheckboxes, useHTTPS);
 								})
 							}
 							break;
 						case "uri":
 							var url = container[key];
-							for (var site in sitesData) {
-								sitesData[site]["rxp"].forEach(function(siteRegex){
-									var siteRegex_match = siteRegex.exec(url);
-									if (siteRegex_match) {
-										if (useHTTPS) {
-											var protocol = "https://";
-										} else {
-											var protocol = "http://";
+							siteCheckboxes.forEach(function(siteCheckbox){
+								let siteID = siteCheckbox.value;
+								if (siteCheckbox.checked && siteID in sitesData) {
+									sitesData[siteID]["rxp"].forEach(function(siteRegex){
+										var siteRegex_match = siteRegex.exec(url);
+										if (siteRegex_match) {
+											if (useHTTPS) {
+												var protocol = "https://";
+											} else {
+												var protocol = "http://";
+											}
+											container[key] = protocol+sitesData["url"]+url.slice(siteRegex_match[0].length);
+											/*
+												if should change title
+													match title
+														patch title
+											*/
 										}
-										container[key] = protocol+sitesData["url"]+url.slice(siteRegex_match[0].length);
-										/*
-											if should change title
-												match title
-													patch title
-										*/
-									}
-								})
-							}
+									})
+								}
+							})
 							break;
 					}
 				}
