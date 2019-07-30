@@ -47,9 +47,11 @@ Please open an issue if you wanna help or have questions.
 
 ### Roadmap
 Things I already plan to implement, but didn't have yet:
-- [] Better visual design: Show exactly what changes will be made using examples
-- [] Turn https on or off for each site
-- [] Select sites which should be patched
+- [] Above: Turn all patched sites' links into https.
+- [] Above: Patch all.
+- [] If the user selects a file it will be automatically read.
+- [] Infos: name, type, size, last changed.
+- [] user can patch multiple times.
 
 ## Authors
 
