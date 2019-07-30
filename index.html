@@ -9,22 +9,150 @@
 		<meta name="apple-mobile-web-app-title" content="Convert Bookmarks" />
 		<link rel="stylesheet" href="style.css">
 		<style type="text/css">
+			.switch-binary {
+				-webkit-appearance:  none;
+				appearance: none;
+				display: inline-block;
+
+				/* background-color: #F46053; */
+				background-color: #CCC;
+				border-radius: 3px;
+
+				font-size: 0.55em;
+			}
+			.switch-binary:checked {
+				background-color: #00FF84;
+			}
+			.switch-binary::after {
+				position: relative;
+				display: inline-block;
+
+				margin: 0.15em 3.15em 0.15em 0.15em;
+
+				width: 3em;
+				height: 1.5em;
+
+				background-color: #FFF;
+				border-radius: 3px;
+
+				color: #000;
+				text-align: center;
+				line-height: 1.5em;
+			}
+			.switch-binary:checked::after {
+				margin: 0.15em 0.15em 0.15em 3.15em;
+			}
+			.no-yes::after {
+				content: "NO";
+			}
+			.no-yes:checked::after {
+				content: "YES";
+			}
+			.off-on::after {
+				content: "OFF";
+			}
+			.off-on:checked::after {
+				content: "ON";
+			}
+			td {
+				border: 1px solid black;
+			}
+			table {
+				border-collapse: collapse;
+			}
+			form {
+				display: flex;
+				flex-direction: column;
+			}
+				/* content: "↓"; */
 		</style>
 	</head>
 	<body ontouchstart="">
-		<form onsubmit="return parseRequest(this);">
-			<label>1. The bookmarks backup: <input type="file" name="fileElem" accept="application/json,.json,.JSON,text/html,.html.HTML,.htm,.HTM" required=""></label>
+		<form>
 			<fieldset>
-				<legend>2. The options:</legend>
-				<label>When patching bookmarks, replace HTTP with HTTPS (more secure)?<input type="checkbox" name="useHTTPS" checked=""></label>
-				<fieldset id="sitesList">
-					<legend>Sites</legend>
-					<input type="hidden" name="sites" value="You don't wanna know why this element has to exist.">
-				</fieldset>
+				<legend>The bookmarks file</legend>
+				<input type="file" name="fileElem" accept="application/json,.json,.JSON,text/html,.html.HTML,.htm,.HTM" required="" onchange="load_fileInfo(this.files);">
+				<output>
+					<!-- FILE METADATA -->
+				</output>
 			</fieldset>
-			<label>3. Start Conversion: <button>Convert</button></label>
+			<fieldset onchange="parseRequest(this.form);">
+				<legend>What will be changed</legend>
+				<input type="hidden" name="sites" value="You don't wanna know why this element has to exist.">
+				<div><label>Patch all? <input type="checkbox" name="patchAll" class="switch-binary no-yes"></label></div>
+				<div><label>HTTPS all? <input type="checkbox" name="httpsAll" class="switch-binary no-yes"></label></div>
+				<table>
+					<caption>Sites</caption>
+					<thead>
+						<tr>
+							<td>Sitename</td><td>Patch?</td><td>Set all to HTTPS?</td>
+						</tr>
+					</thead>
+					<tbody id="sitesList">
+
+					</tbody>
+				</table>
+			</fieldset>
+			<fieldset>
+				<legend>The result</legend>
+				<output>
+					Here be:
+					File Download
+					Human explanation
+					File Info
+				</output>
+			</fieldset>
 		</form>
-		<div id="testdiv"></div>
+		<fieldset>
+			<legend>Manual</legend>
+			If you want to patch the bookmarks of your browser, these are the necessary steps:
+			<ul>
+				<li>
+					<h3>Firefox</h3>
+					<ol>
+						<li>Click on the menu bar and select "History", then "Show all history".</li>
+						<li>In the window which opens, select "Import and Backup", then "Backup".</li>
+						<li>You are now prompted to save a file named "bookmarks-DATE.json". Save it.</li>
+						<li>Import this file into this website, choose your patching options and save it.</li>
+						<li>In Firefox window from before, select "Import and Backup" then "Restore", "Choose File...".</li>
+						<li>Select the file you got from this website.</li>
+						<li>Your bookmarks are patched!</li>
+					</ol>
+				</li>
+				<li>
+					<h3>Chrome</h3>
+					<p>If you don't want to have your bookmarks duplicated, you have to do the following:</p>
+					<ol>
+						<li>
+							<p>Find your bookmarks file.</p>
+							<ul>
+								<li>
+									<h4>Linux</h4>
+									<ol>
+										<li>Go to ~/.config/google-chrome/Default/</li>
+										<li>Import the "Bookmarks" file into this website.</li>
+									</ol>
+								</li>
+								<li>
+									<h4>MacOS</h4>
+									<ol>
+										<li>Go to ~/.config/google-chrome/Default/</li>
+										<li>Import the "Bookmarks" file into this website.</li>
+									</ol>
+								</li>
+								<li>
+									<h4>Windows</h4>
+									<ol>
+										<li>Go to ~/.config/google-chrome/Default/</li>
+										<li>Import the "Bookmarks" file into this website.</li>
+									</ol>
+								</li>
+							</ul>
+						</li>
+					</ol>
+				</li>
+			</ul>
+		</fieldset>
 	</body>
 	<script type="text/javascript">
 		let sites = {
@@ -34,20 +162,99 @@
 					/^https:?\/\/(www\.)?anilinkz\.(to|com|net|tv|io)/i,
 					/^https:?\/\/(www\.)?aniwatcher\.com/i,
 				]
+			},
+			"Batoto": {
+				"url": "bato.to"
 			}
 		}
 		let elem_sitesList = document.getElementById("sitesList");
+		var bookmarksBackupX;
 		for (let siteName in sites) {
-			let label = document.createElement("label");
-			let span = document.createElement("span");
-			span.innerText = "Patch "+siteName+"? ";
-			let input = document.createElement("input");
-			input.type = "checkbox";
-			input.name = "sites";
-			input.value = siteName;
-			label.appendChild(span);
-			label.appendChild(input);
-			elem_sitesList.appendChild(label);
+			let row = document.createElement("tr");
+
+			let cell_sitename = document.createElement("td");
+			cell_sitename.setAttribute("scope", "row");
+			cell_sitename.innerText = siteName;
+			row.appendChild(cell_sitename);
+
+			let cell_patch = document.createElement("td");
+			let input_patch = document.createElement("input");
+			input_patch.type = "checkbox";
+			input_patch.name = "sites";
+			input_patch.value = siteName;
+			input_patch.className = "switch-binary no-yes";
+			cell_patch.appendChild(input_patch);
+			row.appendChild(cell_patch);
+
+			let cell_https = document.createElement("td");
+			let input_https = document.createElement("input");
+			input_https.type = "checkbox";
+			input_https.name = "force_https";
+			input_https.value = 1;
+			input_https.className = "switch-binary no-yes";
+			cell_https.appendChild(input_https);
+			row.appendChild(cell_https);
+
+			elem_sitesList.appendChild(row);
+		}
+		function load_fileInfo(files) {
+			/*
+			file.name;
+			file.type;//should display web browser bookmarks file type too
+			file.lastModified;
+			*/
+
+			for (let i = 0, file; file = files[i]; i++) {
+				switch (file.type) {
+					case "application/json":
+						var reader = new FileReader();
+						reader.onload = function(event) {
+							var bookmarksBackup = JSON.parse(event.target.result);
+							var bookmarksBackup_updated = replaceJSONBookmarks(bookmarksBackup, sites, elem_form.sites, elem_form.useHTTPS.checked);
+							var bookmarksBackup_updated_encoded = encodeURIComponent(JSON.stringify(bookmarksBackup_updated));
+							var downloadElement = document.createElement("a");
+							downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
+							var newFileName = file.name;
+							if (newFileName.endsWith(".json")) {
+								newFileName = newFileName.slice(0, -5);
+							}
+							newFileName += "_patched.json";
+							downloadElement.setAttribute("download", newFileName);
+							downloadElement.style.display = "none";
+							document.body.appendChild(downloadElement);
+							downloadElement.click();
+							document.body.removeChild(downloadElement);
+						}
+						reader.readAsText(file);
+						break;
+					case "text/html":
+						var reader = new FileReader();
+						reader.onload = function(event) {
+							var parser = new DOMParser();
+							var bookmarksBackup = parser.parseFromString(event.target.result, "text/html");
+							var bookmarksBackup_updated = replaceHTMLBookmarks(bookmarksBackup, sites, elem_form.sites, elem_form.useHTTPS.checked);
+							var XMLS = new XMLSerializer();
+							var bookmarksBackup_updated_encoded = encodeURIComponent(XMLS.serializeToString(bookmarksBackup_updated));
+							var downloadElement = document.createElement("a");
+							downloadElement.setAttribute("href", "data:application/json;charset=utf-8,"+bookmarksBackup_updated_encoded);
+							var newFileName = file.name;
+
+							if (newFileName.endsWith(".html")) {
+								newFileName = newFileName.slice(0, -5);
+							} else if (newFileName.endsWith(".htm")) {
+								newFileName = newFileName.slice(0, -4);
+							}
+							newFileName += "_patched.html";
+							downloadElement.setAttribute("download", newFileName);
+							downloadElement.style.display = "none";
+							document.body.appendChild(downloadElement);
+							downloadElement.click();
+							document.body.removeChild(downloadElement);
+						}
+						reader.readAsText(file);
+						break;
+				}
+			}
 		}
 		function parseRequest(elem_form) {
 			var files = elem_form.fileElem.files;
